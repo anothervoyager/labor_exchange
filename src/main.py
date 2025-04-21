@@ -9,6 +9,8 @@ from config import DBSettings
 from dependencies.containers import RepositoriesContainer
 from storage.sqlalchemy.client import SqlAlchemyAsync
 from web.routers import auth_router, user_router, jobs_router
+from web.routers import auth_router, user_router, jobs_router, responses_router
+
 
 env_file_name = ".env." + os.environ.get("STAGE", "dev")
 env_file_path = Path(__file__).parent.resolve() / env_file_name
@@ -33,6 +35,7 @@ def create_app():
     app.include_router(auth_router)
     app.include_router(user_router)
     app.include_router(jobs_router)
+    app.include_router(responses_router)
 
     return app
 

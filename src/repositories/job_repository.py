@@ -30,7 +30,7 @@ class JobRepository(IRepositoryAsync):
 
                 Returns:
                     JobModel: Созданная запись о вакансии.
-                """
+        """
         async with self.session() as session:
             job = Job(
                 title=job_create_dto.title,
@@ -53,7 +53,7 @@ class JobRepository(IRepositoryAsync):
 
                 Returns:
                     Optional[JobModel]: Запись о вакансии, если найдена, иначе None.
-                """
+        """
         async with self.session() as session:
             query = select(Job).filter_by(id=job_id).limit(1)
             result = await session.execute(query)
@@ -69,7 +69,7 @@ class JobRepository(IRepositoryAsync):
 
                 Returns:
                     List[JobModel]: Список записей о вакансиях.
-                """
+        """
         async with self.session() as session:
             query = select(Job).limit(limit).offset(skip)
             result = await session.execute(query)
@@ -107,7 +107,7 @@ class JobRepository(IRepositoryAsync):
 
                 Args:
                     job_id (int): Идентификатор вакансии для удаления.
-                """
+        """
         async with self.session() as session:
             job = await self.retrieve(job_id)
             if job is not None:
