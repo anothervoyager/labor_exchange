@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class ResponseSchema(BaseModel):
-    message: str  # Сообщение отклика
+    message: str
 
     class Config:
-        orm_mode = True  # Позволяет использовать SQLAlchemy модели
+        orm_mode = True

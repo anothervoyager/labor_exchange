@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 
 from interfaces.i_sqlalchemy import ISQLAlchemy
-from repositories import UserRepository, JobRepository, ResponseRepository  # Импортируйте ResponseRepository
+from repositories import UserRepository, JobRepository, ResponseRepository
 
 
 class RepositoriesContainer(containers.DeclarativeContainer):

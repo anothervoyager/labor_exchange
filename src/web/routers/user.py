@@ -24,7 +24,7 @@ async def get_user_by_id(db, user_id: int) -> User:
     :return: Пользователь.
     """
     user_repository: UserRepository = Provide[RepositoriesContainer.user_repository]
-    user = await user_repository.retrieve_by_id(user_id)  # Предполагается, что есть метод retrieve_by_id
+    user = await user_repository.retrieve_by_id(user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found.")
     return user

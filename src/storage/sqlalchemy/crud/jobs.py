@@ -12,10 +12,10 @@ async def create_job(db: AsyncSession, job_schema):
     :param db: Сессия базы данных.
     :param job_schema: Данные вакансии (например, название, описание и т.д.).
     """
-    new_job = Job(**job_schema)  # Создаем новую запись вакансии
-    db.add(new_job)  # Добавляем запись в сессию
-    await db.commit()  # Фиксируем изменения
-    await db.refresh(new_job)  # Обновляем данные объекта
+    new_job = Job(**job_schema)
+    db.add(new_job)
+    await db.commit()
+    await db.refresh(new_job)
     return new_job
 
 
@@ -53,7 +53,7 @@ async def response_job(db: AsyncSession, job_id: int, user_id: int, message: str
     :param message: Сообщение отклика.
     """
     # Проверяем, существует ли пользователь
-    user = await get_user_by_id(db, user_id)  # Использование новой функции
+    user = await get_user_by_id(db, user_id)
 
     # Проверяем, что пользователь является соискателем
     if user.role != 'candidate':
