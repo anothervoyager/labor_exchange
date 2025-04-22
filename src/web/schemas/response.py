@@ -1,9 +1,12 @@
 from pydantic import BaseModel
 
-class ResponseSchema(BaseModel):
-    user_id: int
+class ResponseCreateSchema(BaseModel):
     job_id: int
     message: str
 
-    class Config:
-        orm_mode = True
+class ResponseUpdateSchema(BaseModel):
+    message: str
+
+class ResponseSchema(ResponseCreateSchema):
+    id: int
+    user_id: int

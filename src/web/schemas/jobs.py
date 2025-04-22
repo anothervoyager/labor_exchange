@@ -14,6 +14,3 @@ class JobCreateSchema(BaseModel):
 class JobSchema(JobCreateSchema):
     id: int
 
-class ResponseSchema(BaseModel):
-    user_id: int
-    message: str

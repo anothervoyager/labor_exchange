@@ -21,5 +21,5 @@ class RepositoriesContainer(containers.DeclarativeContainer):
 
     response_repository = providers.Factory(
         ResponseRepository,
-        db_session=db.provided.get_db,  # Изменение 'session' на 'db_session'
+        db_session=db.provided.get_db,
     )
