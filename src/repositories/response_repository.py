@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from models import Response
+from interfaces import IRepositoryAsync
 
-class ResponseRepository:
+class ResponseRepository(IRepositoryAsync):
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
 

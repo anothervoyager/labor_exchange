@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from dependency_injector.wiring import Provide, inject
-from models import Response, User, Job  # Импортируйте свои модели
+from models import Response, User, Job
 from web.schemas.response import ResponseSchema
 from web.schemas.jobs import JobCreateSchema, JobSchema
 from repositories import JobRepository, ResponseRepository
