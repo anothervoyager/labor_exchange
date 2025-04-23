@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from dependency_injector.wiring import Provide, inject
-from models import Response, User
+from models import User
 from web.schemas.response import ResponseSchema, ResponseCreateSchema, ResponseUpdateSchema
 from repositories import ResponseRepository, JobRepository
 from dependencies.containers import RepositoriesContainer
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/responses", tags=["responses"])
-
 
 @router.post("/", response_model=ResponseSchema, status_code=status.HTTP_201_CREATED)
 @inject
@@ -22,16 +21,11 @@ async def create_response(
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
-    new_response = Response(
-        user_id=current_user.id,
-        job_id=response_data.job_id,
-        message=response_data.message
+    new_response = await response_repository.create(
+        response_create_dto=response_data.copy(update={"user_id": current_user.id})
     )
 
-    await response_repository.create(new_response)
-
     return new_response
-
 
 @router.get("/{response_id}", response_model=ResponseSchema)
 @inject
@@ -44,7 +38,6 @@ async def read_response(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
     return response
 
-
 @router.put("/{response_id}", response_model=ResponseSchema)
 @inject
 async def update_response(
@@ -56,11 +49,10 @@ async def update_response(
     if existing_response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
-    updated_response = existing_response.copy(update=response_data.dict())
+    existing_response.message = response_data.message  # Обновляем только сообщение
+    updated_response = await response_repository.update(existing_response)
 
-    await response_repository.update(updated_response)
     return updated_response
-
 
 @router.delete("/{response_id}", status_code=status.HTTP_204_NO_CONTENT)
 @inject

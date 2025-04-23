@@ -1,54 +1,125 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from models import Response
+from contextlib import AbstractContextManager
+from typing import Callable, List, Optional
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from interfaces import IRepositoryAsync
-from typing import List, Optional
-
+from models import Response as ResponseModel
+from storage.sqlalchemy.tables.responses import Response
+from web.schemas import ResponseCreateSchema
 
 class ResponseRepository(IRepositoryAsync):
-    def __init__(self, db_session: AsyncSession):
-        self.db_session = db_session
+    """
+    Репозиторий для работы с сущностью 'Response'.
 
-    async def create(self, response: Response) -> Response:
-        """Сохранить отклик в базе данных."""
-        self.db_session.add(response)
-        await self.db_session.commit()
-        await self.db_session.refresh(response)
-        return response
+    Предоставляет методы для создания, извлечения, обновления и удаления откликов
+    в асинхронном режиме, используя SQLAlchemy для взаимодействия с базой данных.
 
-    async def get_all_by_job_id(self, job_id: int) -> List[Response]:
-        """Получить все отклики по id вакансии."""
-        result = await self.db_session.execute(select(Response).where(Response.job_id == job_id))
-        return result.scalars().all()
+    Attributes:
+        session (Callable[..., AbstractContextManager[Session]]): Функция для создания контекста
+        сессии SQLAlchemy.
+    """
+    def __init__(self, session: Callable[..., AbstractContextManager[Session]]):
+        self.session = session
 
-    async def retrieve(self, response_id: int) -> Optional[Response]:
-        """Получить отклик по его ID."""
-        result = await self.db_session.execute(select(Response).filter(Response.id == response_id))
-        return result.scalars().first()
+    async def create(self, response_create_dto: ResponseCreateSchema) -> ResponseModel:
+        """
+        Создает новый отклик на вакансию.
 
-    async def retrieve_many(self) -> List[Response]:
-        """Получить все отклики."""
-        result = await self.db_session.execute(select(Response))
-        return result.scalars().all()
+        Args:
+            response_create_dto (ResponseCreateSchema): DTO (объект передачи данных) с информацией об отклике.
 
-    async def update(self, response: Response) -> Response:
-        """Обновить отклик."""
-        # Проверьте, существует ли отклик
-        existing_response = await self.retrieve(response.id)
-        if existing_response is None:
-            raise ValueError(f"Response with id {response.id} not found.")
+        Returns:
+            ResponseModel: Созданный отклик.
+        """
+        async with self.session() as session:
+            response = Response(
+                user_id=response_create_dto.user_id,
+                job_id=response_create_dto.job_id,
+                message=response_create_dto.message
+            )
+            session.add(response)
+            await session.commit()
+            await session.refresh(response)
+            return response
 
-        # Обновление полей отклика; примите во внимание, что может потребоваться указать конкретные поля
-        existing_response.content = response.content  # Пример для одного поля
-        self.db_session.add(existing_response)
-        await self.db_session.commit()
-        return existing_response
+    async def retrieve(self, response_id: int) -> Optional[ResponseModel]:
+        """
+        Извлекает отклик по заданному идентификатору.
+
+        Args:
+            response_id (int): Идентификатор отклика.
+
+        Returns:
+            Optional[ResponseModel]: Отклик, если найден, иначе None.
+        """
+        async with self.session() as session:
+            query = select(Response).filter_by(id=response_id).limit(1)
+            result = await session.execute(query)
+            return result.scalar_one_or_none()
+
+    async def retrieve_many(self) -> List[ResponseModel]:
+        """
+        Извлекает все отклики.
+
+        Returns:
+            List[ResponseModel]: Список откликов.
+        """
+        async with self.session() as session:
+            query = select(Response)
+            result = await session.execute(query)
+            return result.scalars().all()
+
+    async def get_all_by_job_id(self, job_id: int) -> List[ResponseModel]:
+        """
+        Получает все отклики по идентификатору вакансии.
+
+        Args:
+            job_id (int): Идентификатор вакансии.
+
+        Returns:
+            List[ResponseModel]: Список откликов для заданной вакансии.
+        """
+        async with self.session() as session:
+            query = select(Response).filter(Response.job_id == job_id)
+            result = await session.execute(query)
+            return result.scalars().all()
+
+    async def update(self, response_id: int, response_update_dto: ResponseCreateSchema) -> ResponseModel:
+        """
+        Обновляет отклик по заданному идентификатору.
+
+        Args:
+            response_id (int): Идентификатор отклика для обновления.
+            response_update_dto (ResponseCreateSchema): DTO с обновленной информацией об отклике.
+
+        Returns:
+
+        ResponseModel: Обновленный отклик.
+
+        Raises:
+            ValueError: Если отклик с указанным идентификатором не найден.
+        """
+
+        async with self.session() as session:
+            response = await self.retrieve(response_id)
+            if response is None:
+                raise ValueError("Response not found")
+            response.message = response_update_dto.message
+            session.add(response)
+            await session.commit()
+            await session.refresh(response)
+            return response
+
 
     async def delete(self, response_id: int) -> None:
-        """Удалить отклик по его ID."""
-        response = await self.retrieve(response_id)
-        if response is None:
-            raise ValueError(f"Response with id {response_id} not found.")
+        """
+        Удаляет отклик по заданному идентификатору.
 
-        self.db_session.delete(response)
-        await self.db_session.commit()
+        Args:
+            response_id (int): Идентификатор отклика для удаления.
+        """
+        async with self.session() as session:
+            response = await self.retrieve(response_id)
+            if response is not None:
+                await session.delete(response)
+                await session.commit()
