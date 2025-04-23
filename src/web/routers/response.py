@@ -46,6 +46,15 @@ async def read_all_responses(
     responses = await response_repository.retrieve_many()
     return responses
 
+@router.get("/job/{job_id}", response_model=list[ResponseSchema])
+@inject
+async def read_responses_by_job_id(
+        job_id: int,
+        response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
+):
+    responses = await response_repository.get_all_by_job_id(job_id)
+    return responses
+
 @router.put("/{response_id}", response_model=ResponseSchema)
 @inject
 async def update_response(
