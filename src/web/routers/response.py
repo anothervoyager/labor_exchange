@@ -38,6 +38,14 @@ async def read_response(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
     return response
 
+@router.get("/", response_model=list[ResponseSchema])
+@inject
+async def read_all_responses(
+        response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
+):
+    responses = await response_repository.retrieve_many()
+    return responses
+
 @router.put("/{response_id}", response_model=ResponseSchema)
 @inject
 async def update_response(
@@ -49,8 +57,7 @@ async def update_response(
     if existing_response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
-    existing_response.message = response_data.message  # Обновляем только сообщение
-    updated_response = await response_repository.update(existing_response)
+    updated_response = await response_repository.update(response_id, response_data)
 
     return updated_response
 
@@ -65,5 +72,3 @@ async def delete_response(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
     await response_repository.delete(response_id)
-
-    return {"detail": "Response deleted"}

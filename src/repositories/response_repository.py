@@ -69,21 +69,6 @@ class ResponseRepository(IRepositoryAsync):
             result = await session.execute(query)
             return result.scalars().all()
 
-    async def get_all_by_job_id(self, job_id: int) -> List[ResponseModel]:
-        """
-        Получает все отклики по идентификатору вакансии.
-
-        Args:
-            job_id (int): Идентификатор вакансии.
-
-        Returns:
-            List[ResponseModel]: Список откликов для заданной вакансии.
-        """
-        async with self.session() as session:
-            query = select(Response).filter(Response.job_id == job_id)
-            result = await session.execute(query)
-            return result.scalars().all()
-
     async def update(self, response_id: int, response_update_dto: ResponseCreateSchema) -> ResponseModel:
         """
         Обновляет отклик по заданному идентификатору.
