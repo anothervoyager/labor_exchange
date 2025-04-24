@@ -16,13 +16,18 @@ async def create_response(
         response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository]),
         job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
 ):
+    # Проверка на то, что пользователь не является компанией
+    if current_user.is_company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Companies are not allowed to create responses.")
+
     job = await job_repository.retrieve(response_data.job_id)
 
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
 
     new_response = await response_repository.create(
-        response_create_dto=response_data.copy(update={"user_id": current_user.id})
+        response_create_dto=response_data.copy(update={"user_id": current_user.id}),
+        current_user=current_user
     )
 
     return new_response
@@ -60,15 +65,21 @@ async def read_responses_by_job_id(
 async def update_response(
         response_id: int,
         response_data: ResponseUpdateSchema,
+        current_user: User = Depends(get_current_user),  # Получаем текущего пользователя
         response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
 ):
+    # Проверка на то, что пользователь не является компанией
+    if current_user.is_company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Companies are not allowed to update responses.")
+
     existing_response = await response_repository.retrieve(response_id)
     if existing_response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
-    updated_response = await response_repository.update(response_id, response_data)
+    updated_response = await response_repository.update(response_id, response_data, current_user=current_user)
 
     return updated_response
+
 
 @router.delete("/{response_id}", status_code=status.HTTP_204_NO_CONTENT)
 @inject

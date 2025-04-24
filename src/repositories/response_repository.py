@@ -21,7 +21,7 @@ class ResponseRepository(IRepositoryAsync):
     def __init__(self, session: Callable[..., AbstractContextManager[Session]]):
         self.session = session
 
-    async def create(self, response_create_dto: ResponseCreateSchema) -> ResponseModel:
+    async def create(self, response_create_dto: ResponseCreateSchema, current_user) -> ResponseModel:
         """
         Создает новый отклик на вакансию.
 
@@ -84,7 +84,7 @@ class ResponseRepository(IRepositoryAsync):
             result = await session.execute(query)
             return result.scalars().all()
 
-    async def update(self, response_id: int, response_update_dto: ResponseCreateSchema) -> ResponseModel:
+    async def update(self, response_id: int, response_update_dto: ResponseCreateSchema, current_user) -> ResponseModel:
         """
         Обновляет отклик по заданному идентификатору.
 
