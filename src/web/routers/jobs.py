@@ -13,7 +13,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 @inject
 async def create_job(
     job_create_dto: JobCreateSchema,
-    job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
+    job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository]),
+    current_user: User = Depends(get_current_user),
 ) -> JobSchema:
     """
     Создает новую запись о вакансии.
@@ -28,8 +29,12 @@ async def create_job(
     Raises:
         HTTPException: При ошибках валидации или создании вакансии.
     """
+
+    if not current_user.is_company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only company users can create jobs")
+
     try:
-        job = await job_repository.create(job_create_dto)
+        job = await job_repository.create(job_create_dto, current_user)
         return job
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -87,21 +92,23 @@ async def read_job(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
     return job
 
+
 @router.put("/{job_id}", response_model=JobSchema)
 @inject
 async def update_job(
-    job_id: int,
-    job_update_dto: JobCreateSchema,
-    job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
+        job_id: int,
+        job_update_dto: JobCreateSchema,
+        job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository]),
+        current_user: User = Depends(get_current_user),
 ) -> JobSchema:
     """
     Обновляет запись о вакансии по заданному идентификатору.
 
     Args:
         job_id (int): Идентификатор вакансии для обновления.
-
         job_update_dto (JobCreateSchema): DTO с обновленной информацией о вакансии.
         job_repository (JobRepository): Репозиторий для работы с вакансиями.
+        current_user (User): Пользователь, выполняющий запрос.
 
     Returns:
         JobSchema: Обновленная запись о вакансии.
@@ -109,19 +116,26 @@ async def update_job(
     Raises:
         HTTPException: Если вакансия не найдена или при других ошибках.
     """
+
+    if not current_user.is_company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only company users can update jobs")
+
     try:
-        updated_job = await job_repository.update(job_id, job_update_dto)
+        updated_job = await job_repository.update(job_id, job_update_dto,
+                                                  current_user)
         return updated_job
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error updating job: {str(e)}")
 
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 @inject
 async def delete_job(
-    job_id: int,
-    job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
+        job_id: int,
+        job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository]),
+        current_user: User = Depends(get_current_user),
 ) -> None:
     """
     Удаляет запись о вакансии по заданному идентификатору.
@@ -129,10 +143,15 @@ async def delete_job(
     Args:
         job_id (int): Идентификатор вакансии для удаления.
         job_repository (JobRepository): Репозиторий для работы с вакансиями.
+        current_user (User): Пользователь, выполняющий запрос.
 
     Raises:
         HTTPException: Если вакансия не найдена или при других ошибках.
     """
+
+    if not current_user.is_company:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only company users can delete jobs")
+
     try:
         await job_repository.delete(job_id)
     except ValueError as e:

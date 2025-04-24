@@ -21,23 +21,24 @@ class JobRepository(IRepositoryAsync):
     def __init__(self, session: Callable[..., AbstractContextManager[Session]]):
         self.session = session
 
-    async def create(self, job_create_dto: JobCreateSchema) -> JobModel:
+    async def create(self, job_create_dto: JobCreateSchema, current_user) -> Job:
         """
-                Создает новую запись о вакансии.
+        Создает новую запись о вакансии.
 
-                Args:
-                    job_create_dto (JobCreateSchema): DTO (объект передачи данных) с информацией о вакансии.
+        Args:
+            job_create_dto (JobCreateSchema): DTO (объект передачи данных) с информацией о вакансии.
+            current_user: Пользователь, создающий вакансию.
 
-                Returns:
-                    JobModel: Созданная запись о вакансии.
-                """
+        Returns:
+            Job: Созданная запись о вакансии.
+        """
         async with self.session() as session:
             job = Job(
                 title=job_create_dto.title,
                 description=job_create_dto.description,
                 user_id=job_create_dto.user_id,
                 salary_from=job_create_dto.salary_from,
-                salary_to=job_create_dto.salary_to
+                salary_to=job_create_dto.salary_to,
             )
             session.add(job)
             await session.commit()
@@ -75,28 +76,32 @@ class JobRepository(IRepositoryAsync):
             result = await session.execute(query)
             return result.scalars().all()
 
-    async def update(self, job_id: int, job_update_dto: JobCreateSchema) -> JobModel:
+    async def update(self, job_id: int, job_update_dto: JobCreateSchema, current_user) -> Job:
         """
-                Обновляет запись о вакансии по заданному идентификатору.
+        Обновляет запись о вакансии по заданному идентификатору.
 
-                Args:
-                    job_id (int): Идентификатор вакансии для обновления.
-                    job_update_dto (JobCreateSchema): DTO с обновленной информацией о вакансии.
+        Args:
+            job_id (int): Идентификатор вакансии для обновления.
+            job_update_dto (JobCreateSchema): DTO с обновленной информацией о вакансии.
 
-                Returns:
-                    JobModel: Обновленная запись о вакансии.
+        Returns:
+            Job: Обновленная запись о вакансии.
 
-                Raises:
-                    ValueError: Если вакансия с указанным идентификатором не найдена.
+        Raises:
+            ValueError: Если вакансия с указанным идентификатором не найдена.
         """
         async with self.session() as session:
-            job = await self.retrieve(job_id)
+            job = await session.get(Job, job_id)
             if job is None:
                 raise ValueError("Job not found")
+
+
             job.title = job_update_dto.title
             job.description = job_update_dto.description
             job.user_id = job_update_dto.user_id
-            session.add(job)
+            job.salary_from = job_update_dto.salary_from
+            job.salary_to = job_update_dto.salary_to
+
             await session.commit()
             await session.refresh(job)
             return job
