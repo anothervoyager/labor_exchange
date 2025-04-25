@@ -2,10 +2,12 @@ from contextlib import AbstractContextManager
 from typing import Callable, List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from interfaces import IRepositoryAsync
 from models import Response as ResponseModel
 from storage.sqlalchemy.tables.responses import Response
 from web.schemas import ResponseCreateSchema
+
 
 class ResponseRepository(IRepositoryAsync):
     """
@@ -69,6 +71,12 @@ class ResponseRepository(IRepositoryAsync):
             result = await session.execute(query)
             return result.scalars().all()
 
+    async def retrieve_many_by_user_id(self, user_id: int) -> List[ResponseModel]:
+        async with self.session() as session:
+            query = select(Response).filter(Response.user_id == user_id)
+            result = await session.execute(query)
+            return result.scalars().all()
+
     async def get_all_by_job_id(self, job_id: int) -> List[ResponseModel]:
         """
         Получает все отклики по идентификатору вакансии.
@@ -104,6 +112,8 @@ class ResponseRepository(IRepositoryAsync):
             response = await self.retrieve(response_id)
             if response is None:
                 raise ValueError("Response not found")
+            if response.user_id != current_user.id: #проверка на текущего пользователя
+                raise HTTPException(status_code=403, detail="You do not have permission to update this response")
             response.message = response_update_dto.message
             session.add(response)
             await session.commit()
@@ -111,7 +121,7 @@ class ResponseRepository(IRepositoryAsync):
             return response
 
 
-    async def delete(self, response_id: int) -> None:
+    async def delete(self, response_id: int, current_user) -> None:
         """
         Удаляет отклик по заданному идентификатору.
 
@@ -121,5 +131,7 @@ class ResponseRepository(IRepositoryAsync):
         async with self.session() as session:
             response = await self.retrieve(response_id)
             if response is not None:
+                if response.user_id != current_user.id:
+                    raise HTTPException(status_code=403, detail="You do not have permission to delete this response")
                 await session.delete(response)
                 await session.commit()

@@ -6,7 +6,6 @@ from pydantic import BaseModel
 class JobCreateSchema(BaseModel):
     title: str
     description: str
-    user_id: int
     salary_from: float = None
     salary_to: float = None
 

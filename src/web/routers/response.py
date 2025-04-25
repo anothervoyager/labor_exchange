@@ -36,27 +36,40 @@ async def create_response(
 @inject
 async def read_response(
         response_id: int,
+        current_user: User = Depends(get_current_user),
         response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
 ):
     response = await response_repository.retrieve(response_id)
     if response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
+    if response.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view this response")
     return response
 
 @router.get("/", response_model=list[ResponseSchema])
 @inject
 async def read_all_responses(
+        current_user: User = Depends(get_current_user),
         response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
 ):
-    responses = await response_repository.retrieve_many()
+    # Чтение только своих откликов
+    responses = await response_repository.retrieve_many_by_user_id(current_user.id)
+    # Чтение всех откликов
+    # responses = await response_repository.retrieve_many()
     return responses
 
 @router.get("/job/{job_id}", response_model=list[ResponseSchema])
 @inject
 async def read_responses_by_job_id(
         job_id: int,
-        response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
+        current_user: User = Depends(get_current_user),
+        response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository]),
+        job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
 ):
+    job = await job_repository.retrieve(job_id)
+    if job is None or job.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view responses for this job.")
+
     responses = await response_repository.get_all_by_job_id(job_id)
     return responses
 
@@ -76,6 +89,7 @@ async def update_response(
     if existing_response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
+
     updated_response = await response_repository.update(response_id, response_data, current_user=current_user)
 
     return updated_response
@@ -85,10 +99,11 @@ async def update_response(
 @inject
 async def delete_response(
         response_id: int,
+        current_user: User = Depends(get_current_user),
         response_repository: ResponseRepository = Depends(Provide[RepositoriesContainer.response_repository])
 ):
     existing_response = await response_repository.retrieve(response_id)
     if existing_response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
 
-    await response_repository.delete(response_id)
+    await response_repository.delete(response_id, current_user=current_user)

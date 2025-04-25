@@ -120,6 +120,8 @@ async def update_job(
     if not current_user.is_company:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only company users can update jobs")
 
+
+
     try:
         updated_job = await job_repository.update(job_id, job_update_dto,
                                                   current_user)
@@ -153,7 +155,7 @@ async def delete_job(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only company users can delete jobs")
 
     try:
-        await job_repository.delete(job_id)
+        await job_repository.delete(job_id, current_user)  # Передаем current_user в метод delete
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:

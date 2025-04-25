@@ -36,7 +36,7 @@ class JobRepository(IRepositoryAsync):
             job = Job(
                 title=job_create_dto.title,
                 description=job_create_dto.description,
-                user_id=job_create_dto.user_id,
+                user_id=current_user.id,
                 salary_from=job_create_dto.salary_from,
                 salary_to=job_create_dto.salary_to,
             )
@@ -95,10 +95,12 @@ class JobRepository(IRepositoryAsync):
             if job is None:
                 raise ValueError("Job not found")
 
+            if job.user_id != current_user.id:  # Проверка на владение вакансией
+                raise ValueError("You do not have permission to update this job")
+
 
             job.title = job_update_dto.title
             job.description = job_update_dto.description
-            job.user_id = job_update_dto.user_id
             job.salary_from = job_update_dto.salary_from
             job.salary_to = job_update_dto.salary_to
 
@@ -106,7 +108,7 @@ class JobRepository(IRepositoryAsync):
             await session.refresh(job)
             return job
 
-    async def delete(self, job_id: int) -> None:
+    async def delete(self, job_id: int, current_user) -> None:
         """
                 Удаляет запись о вакансии по заданному идентификатору.
 
@@ -116,5 +118,9 @@ class JobRepository(IRepositoryAsync):
         async with self.session() as session:
             job = await self.retrieve(job_id)
             if job is not None:
+
+                if job.user_id != current_user.id:  # Проверка на владение вакансией
+                    raise ValueError("You do not have permission to delete this job")
+
                 await session.delete(job)
                 await session.commit()
