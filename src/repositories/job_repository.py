@@ -1,10 +1,10 @@
 from contextlib import AbstractContextManager
 from typing import Callable, List, Optional
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session
 from interfaces import IRepositoryAsync
 from models import Job as JobModel
-from storage.sqlalchemy.tables import Job
+from storage.sqlalchemy.tables import Job, Response
 from web.schemas import JobCreateSchema
 
 class JobRepository(IRepositoryAsync):
@@ -110,17 +110,25 @@ class JobRepository(IRepositoryAsync):
 
     async def delete(self, job_id: int, current_user) -> None:
         """
-                Удаляет запись о вакансии по заданному идентификатору.
+        Удаляет запись о вакансии по заданному идентификатору.
 
-                Args:
-                    job_id (int): Идентификатор вакансии для удаления.
-                """
+        Args:
+            job_id (int): Идентификатор вакансии для удаления.
+        """
         async with self.session() as session:
             job = await self.retrieve(job_id)
             if job is not None:
 
-                if job.user_id != current_user.id:  # Проверка на владение вакансией
+                if job.user_id != current_user.id:
                     raise ValueError("You do not have permission to delete this job")
+
+
+                await session.execute(
+                    delete(Response).where(Response.job_id == job_id)
+                )
+
 
                 await session.delete(job)
                 await session.commit()
+            else:
+                raise ValueError("Job not found")
