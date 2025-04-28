@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from storage.sqlalchemy.client import Base
@@ -25,3 +24,4 @@ class User(Base):
     responses: Mapped[list["Response"]] = relationship(  # noqa
         back_populates="user", cascade="all, delete-orphan"
     )
+
