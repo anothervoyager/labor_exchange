@@ -67,6 +67,8 @@ async def read_responses_by_job_id(
         job_repository: JobRepository = Depends(Provide[RepositoriesContainer.job_repository])
 ):
     job = await job_repository.retrieve(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found.")
     if job is None or job.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view responses for this job.")
 
